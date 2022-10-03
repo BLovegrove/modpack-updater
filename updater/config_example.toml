@@ -1,0 +1,4 @@
+# The name of your pack to display in the scripts welcome message
+pack_name = ""
+# Url to your modpacks data. Must be a zip containing a mods folder and config folder in its root. Must be direct DL link.
+pack_url = ""
