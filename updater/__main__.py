@@ -1,119 +1,158 @@
 # Imports
+import functools
+import glob
 import os
+import pathlib
+import zipfile
 import requests
 import requests
 import shutil
-import zipfile
 from tqdm import tqdm
 import toml
 from helpers import common
+import paramiko
+
+# Make sure we're working in the right dir (updater folder)
+program_cwd = os.getcwd()
+program_root = os.path.dirname(os.path.abspath(__file__))
+if (program_cwd != program_root):
+	os.chdir(program_root) 
 
 # Config loading
 cfg: dict = toml.load("config.toml")
 
-# Downloads assets from your packs host
-def update_download(url):
+def download_file(url: str, output: str, description: str = "Progress ", keep_finished: bool = True):
     
-    # Make a ./update_temp directory if it doesnt exist
-    if (not os.path.isdir("update_temp")):
-        os.mkdir("update_temp")
-    
-    # Make an HTTP request within a context manager
-    with requests.get(url, stream=True) as r:
-        
-        # Check header to get content length, in bytes
-        total_length = int(r.headers.get("Content-Length"))
-        
-        # Implement progress bar via tqdm
-        with tqdm.wrapattr(r.raw, "read", total=total_length, desc="Progress ") as raw:
-        
-            # Save the output to a file
-            with open("update_temp/modpack.zip", 'wb') as output:
-                shutil.copyfileobj(raw, output)
+    r = requests.get(url, stream=True, allow_redirects=True)
+    if r.status_code != 200:
+        r.raise_for_status()  # Will only raise for 4xx codes, so...
+        raise RuntimeError(f"Request to {url} returned status code {r.status_code}")
+    file_size = int(r.headers.get('Content-Length', 0))
 
-def update_apply(src_dir, dst_dir):
-    
-    items = common.list_items(dst_dir)
-    
-    # Wipes / recreates all files / folders in relevant directories
-    for file in tqdm(items, desc="Deleting files "):
-        if os.path.isfile(file):
-            os.remove(file)
-        else:
-            os.rmdir(file)
-        
-    print(f"Re-creating directory...")
-    os.mkdir(dst_dir)
-    
-    common.copy_progress(src_dir, dst_dir)
-    
+    path = pathlib.Path(output).expanduser().resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    desc = "(Unknown total file size)" if file_size == 0 else description
+    r.raw.read = functools.partial(r.raw.read, decode_content=True)  # Decompress if needed
+    with tqdm.wrapattr(r.raw, "read", total=file_size, desc=desc, leave=keep_finished, ascii="-#") as r_raw:
+        with path.open("wb") as f:
+            shutil.copyfileobj(r_raw, f)
+
     return 0
 
 def main():
-    
-    # MC folder check
-    common.in_minecraft_folder()
-    
-    # Welcome message
-    print(
-        f"Thank you for choosing {cfg['pack']['name']}!" +
-        (os.linesep * 2) +
-        f"Please make sure you have this program in your packs Minecraft folder " +
-        "with a shortcut to it placed somewhere else before continuing." +
-        os.linesep +
-        "(If this is a fresh install - you probably don't have to worry about this.)" +
-        os.linesep
-    )
-    
-    # User confirmation dialogue
-    common.continue_or_not()
-    
-    print(f"{os.linesep}Downloading the latest version of the pack...{os.linesep}")
-    
-    # Get remote zip
-    update_download(cfg['pack']['url'])
-        
-    print(f"{os.linesep}Unpacking update zip...{os.linesep}")
-    
-    # Make ./update_temp/unpacked if it doesnt exist
-    if (not os.path.isdir("update_temp/unpacked")):
-        os.mkdir("update_temp/unpacked")
-    
-    # Unpack zip to ./update_temp/unpacked
-    with zipfile.ZipFile("update_temp/modpack.zip") as zf:
-        for member in tqdm(zf.infolist(), desc='Progress '):
-            try:
-                zf.extract(member, "update_temp/unpacked")
-                
-            except zipfile.error as e:
-                pass
-        
-    print(f"{os.linesep}Matching local with remote data...{os.linesep}")
-    
-    src_config = "update_temp/unpacked/config"
-    src_mods = "update_temp/unpacked/mods"
-    
-    # Update confifg files
-    print("Configs: ")
-    update_apply(src_config, "../config")
-    
-    print()
-    
-    # Update mod files
-    print("Mods: ")
-    update_apply(src_mods, "../mods")
-    
-    # Clean up the update_temp folder 
-    print(f"{os.linesep}Cleaning up temporary files...{os.linesep}")
-    shutil.rmtree("./update_temp")
-    
+	# Check a config/mod folder is present
+	common.in_minecraft_folder()
+
+	# Make sure there's a temp dir for the program to work in
+	if not os.path.isdir("temp"):
+		os.mkdir("temp")
+	
+	# Grab current version by splicing up bcc.json config string
+	version_old = ""
+	try:
+		with open("../config/bcc.json", "r") as f:
+			line = f.readline()
+			line = line[line.index(":\"v"):]
+			version_old = line[3:8]
+	except:
+		version_old = "unknown"
+	
+	# Download version file for latest version info
+	print(os.linesep + "Getting latest version info...")
+	version = ""
+	download_file(f"{cfg['pack']['base_url']}/00_version_latest.txt", "temp/00_version_latest.txt")
+	with open("temp/00_version_latest.txt", "r") as f:
+		version = f.readline()
+
+	# Make sure user knows whats happening
+	print(
+		os.linesep + 
+		f"You are preparing to update your pack from version {version_old} to {version}!" +
+		os.linesep
+	)
+	
+	# Check if user still wants to cotinue runing the program
+	common.continue_or_not()
+
+	# Download config files
+	print(os.linesep + "Downloading config files...")
+	download_file(f"{cfg['pack']['base_url']}/configs/config_v{version}.zip", f"temp/config.zip")
+
+	# Clear out old configs...
+	print(os.linesep + "Clearing old config files...")
+	common.clear_dir("../config/*")
+
+	# Unpack config zip
+	print(os.linesep + "Unpacking new config files...")
+	with zipfile.ZipFile("temp/config.zip") as zf:
+		for member in tqdm(zf.infolist(), desc='Progress ', ascii="-#"):
+			try:
+				zf.extract(member, "../config/")
+				
+			except zipfile.error as e:
+				pass
+
+	# Compile list of local mods
+	mods_local = common.list_items("../mods", False, True)
+	
+	# Download manifest and generate list of remote mods
+	print(os.linesep + "Downloading latest modpack manifest...")
+	mods_remote = []
+	download_file(f"{cfg['pack']['base_url']}/manifest_v{version}.txt", f"temp/manifest_v{version}.txt")
+	with open(f"temp/manifest_v{version}.txt", "r") as f:
+		modlist = f.readlines()
+		for mod in modlist:
+			mods_remote.append(mod.strip("\n").strip("\r"))
+	
+	# Compare mod lists to see what needs deleting and what needs downloading
+	queue_delete = []
+	queue_download = []
+
+	# Find mods to delete (diff version or removed completely)
+	print(os.linesep + "Finding mods that need deleting...")
+	for mod in tqdm(mods_local, desc="Progress ", ascii="-#"):
+		if mod in mods_remote:
+			continue
+
+		else:
+			queue_delete.append(mod)
+	
+	# Find mods to download (missing from current version)
+	print(os.linesep + "Finding mods that need downloading...")
+	for mod in tqdm(mods_remote, desc="Progress ", ascii="-#"):
+		if mod in mods_local:
+			continue
+
+		else:
+			queue_download.append(mod)
+
+	# Remove excess mods
+	print(os.linesep + "Removing excess mods...")
+	for mod in tqdm(queue_delete, desc="Progress ", ascii="-#"):
+		os.remove("../mods/" + mod)
+	
+	# Download missing mods
+	print(os.linesep + "Downloading missing mods...")
+	for mod in tqdm(queue_download, desc="Progress ", ascii="-#"):
+		download_file(f"{cfg['pack']['base_url']}/mods/{mod}", f"../mods/{mod}", f"{mod} ", False)
+
+	# Clean up temp folder
+	print(os.linesep + "Cleaning up temp files...")
+	common.clear_dir("temp/*")
+
     # Finish up!
-    print("Done! You can now launch the pack. If you experience any technical difficulties let your friendly neighbrhood server admin know ASAP!")
+	print(
+		os.linesep + 
+		"Done! You can now launch the pack. If you experience any technical " +
+		"difficulties let your friendly neighbrhood server admin know ASAP!"
+	)
     
     # User confirmation dialogue
-    common.continue_or_not("")
+	print()
+	common.continue_or_not("")
     
-    return 0
+	return 0
 
 if __name__ == "__main__":
     main()

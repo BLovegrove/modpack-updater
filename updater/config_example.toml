@@ -1,0 +1,7 @@
+[pack]
+# The name of your pack to display in the scripts welcome message
+name = "the LAMZPack"
+# Url to your modpacks data. Must be a zip containing a mods folder and config folder in its root. Must be direct DL link.
+url = ""
+# The semantic version of your pack. Leave this default if your pack is brand new
+version = "1.0.0"

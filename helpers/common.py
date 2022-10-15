@@ -1,7 +1,10 @@
+from genericpath import isfile
+import glob
 import os
 import shutil
 import sys
 from tqdm import tqdm
+import paramiko
 
 # Deletes target regardless of file or folder status
 def rm_file_folder(target):
@@ -20,7 +23,7 @@ def rm_file_folder(target):
 	return 0
 
 # Generate list of all files / folders in target directory and orders them items -> folders(reverse order) intended for deletion
-def list_items(target_dir: str, include_folders: bool = True):
+def list_items(target_dir: str, include_folders: bool = True, filename_only: bool = False):
 	
 	files = []
 	folders = []
@@ -28,10 +31,16 @@ def list_items(target_dir: str, include_folders: bool = True):
 	# Walks through dir getting filenames and foldernames seperately
 	for root, subfolder, filenames in os.walk(target_dir):
 		for filename in filenames:
-			files.append(os.path.join(root, filename))
+			if filename_only:
+				files.append(os.path.basename(os.path.join(root, filename)))
+			else:
+				files.append(os.path.join(root, filename))
 		
 		if (include_folders):
-			folders.append(root)
+			if filename_only:
+				folders.append(os.path.basename(root))
+			else:
+				folders.append(root)
 	
 	# Flips order of folders to avoid 'not empty' error.    
 	folders.reverse()
@@ -53,9 +62,9 @@ def in_minecraft_folder():
 		sys.exit(0)
 	
 # prompts user for some input to continue or quit
-def continue_or_not(input_message: str = "Would you like to continue?"):
+def continue_or_not(input_message: str = "Would you like to continue? "):
 	while True:
-		reply: str = input(f"{input_message} Enter (y)es to confirm or anything else to cancel: {os.linesep}> ")
+		reply: str = input(f"{input_message}Enter (y)es to confirm or anything else to cancel: {os.linesep}> ")
 		
 		if reply.lower() == "y" or reply.lower == "yes":
 			break
@@ -94,3 +103,18 @@ def version_decode(version: str):
 
 	else:
 		return version_numbers
+
+# Returns bool based on existance of a specified file on the remote server passed in
+def remote_exists(sftp: paramiko.SFTPClient, path: str):
+    try:
+        sftp.stat(path)
+        return True
+    except FileNotFoundError:
+        return False
+
+def clear_dir(target_glob: str, tqdm_description: str = "Progress ", tqdm_ascii: str = " #"):
+	for item in tqdm(glob.glob(target_glob, recursive=False), desc=tqdm_description, ascii=tqdm_ascii):
+		if os.path.isfile(item):
+			os.remove(item)
+		else:
+			shutil.rmtree(item)

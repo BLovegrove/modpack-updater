@@ -160,3 +160,7 @@ cython_debug/
 #.idea/
 
 config.toml
+mods/
+config/
+mods/*
+config/*
