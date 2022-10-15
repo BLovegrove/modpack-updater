@@ -1,20 +1,21 @@
-import glob
 import os
-import shutil
+import platform
 import zipfile
 from helpers import common
 import toml
 import paramiko
 from tqdm import tqdm
 	
-# Make sure we're working in the right dir (uploader folder)
-program_cwd = os.getcwd()
-program_root = os.path.dirname(os.path.abspath(__file__))
-if (program_cwd != program_root):
-	os.chdir(program_root)
 
 # Config loading
 cfg = toml.load("config.toml")
+
+# Make sure we're working in the right dir (uploader folder).
+program_cwd = os.getcwd()
+program_root = os.path.dirname(os.path.abspath(__file__))
+print(f"CWD: {program_cwd}, ROOT: {program_root}")
+if (program_cwd != program_root):
+	os.chdir(program_root)
 
 # Upload local file to remote server defined in config.toml
 def upload_file(
@@ -184,6 +185,7 @@ def main():
 	print(os.linesep + "Uploading version document...")
 	with open("temp/00_version_latest.txt", "w+") as f:
 		f.write(version)
+
 	upload_file(sftp, "temp/00_version_latest.txt", "00_version_latest.txt")
 
 	# Clean up temp folder
@@ -196,9 +198,17 @@ def main():
     
     # User confirmation dialogue
 	print()
-	common.continue_or_not("")
+	common.continue_or_not(" ")
 
 	return 0
 
 if __name__ == "__main__":
-	main()
+	try:
+		main()
+
+	except SystemExit:
+		pass
+
+	except Exception as e:
+		print(e)
+		common.continue_or_not()

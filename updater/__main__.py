@@ -155,4 +155,8 @@ def main():
 	return 0
 
 if __name__ == "__main__":
-    main()
+	try:
+		main()
+		
+	except:
+		common.continue_or_not()

@@ -58,7 +58,7 @@ def in_minecraft_folder():
 	
 	else:
 		print("Minecraft folder not detected! Make sure you put the program folder in your Minecraft folder.")
-		continue_or_not("")
+		continue_or_not(" ")
 		sys.exit(0)
 	
 # prompts user for some input to continue or quit
