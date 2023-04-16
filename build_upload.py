@@ -1,7 +1,5 @@
 from cx_Freeze import setup, Executable
-import toml
-
-cfg = toml.load("config.toml")
+import config as cfg
 
 # Dependencies are automatically detected, but it might need
 # fine tuning.
@@ -16,7 +14,7 @@ executables = [
 setup (
     name='modpack-uploader',
       version = '1.0',
-      description = f'Uploads new version of {cfg["pack"]["name"]} modpack',
+      description = f'Uploads new version of {cfg.pack.name} modpack',
       options = {'build_exe': build_options},
       executables = executables
 )
