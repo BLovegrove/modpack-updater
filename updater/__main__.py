@@ -58,7 +58,9 @@ def main():
 
     try:
         script_dir = (
-            sys.argv[0].replace("modpack-update", "").replace("modpack-update.exe", "")
+            sys.argv[0]
+            .replace("\\modpack-update.exe", "")
+            .replace("modpack-update", "")
         )
 
         os.chdir(script_dir)
