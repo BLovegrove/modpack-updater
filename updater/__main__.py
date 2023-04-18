@@ -1,11 +1,13 @@
 # Imports
 import os
+import time
 import requests
 import shutil
 import zipfile
 from tqdm import tqdm
 import config as cfg
 from helpers import common
+import sys
 
 
 # Downloads assets from your packs host
@@ -45,22 +47,45 @@ def update_apply(src_dir, dst_dir):
 
 
 def main():
+    # Welcome message
+    print(
+        f"# ---------------------------------------------- #{os.linesep}"
+        + f"#                 Modpack Update                 #{os.linesep}"
+        + f"# ---------------------------------------------- #{os.linesep}"
+        + os.linesep
+        + f"Thank you for choosing {cfg.pack.name}!{os.linesep}"
+    )
+
+    try:
+        script_dir = (
+            sys.argv[0].replace("modpack-update", "").replace("modpack-update.exe", "")
+        )
+
+        os.chdir(script_dir)
+    except:
+        print(sys.argv)
+        print("No args given! Please include the tools dir abs path as an arg.")
+        common.continue_or_not("")
+        return
+
     # MC folder check
     common.in_minecraft_folder()
 
-    # Welcome message
-    print(
-        f"Thank you for choosing {cfg.pack.name}!"
-        + (os.linesep * 2)
-        + f"Please make sure you have this program in your packs Minecraft folder "
-        + "with a shortcut to it placed somewhere else before continuing."
-        + os.linesep
-        + "(If this is a fresh install - you probably don't have to worry about this.)"
-        + os.linesep
-    )
+    # Run version check by comparing local version txt to remote version contents
+    print(f"{os.linesep}Checking for version discrepency...")
+    file_rversion = open("../version.txt", "r+")
+    version_local = common.version_decode(file_rversion.readline())
+    version_remote = common.version_decode(requests.get(cfg.pack.version).text)
+    outdated = False
 
-    # User confirmation dialogue
-    common.continue_or_not()
+    for i in range(0, 3):
+        if version_local[i] < version_remote[i]:
+            outdated = True
+
+    if not outdated:
+        print("No updates found! Launching instance...")
+        time.sleep(1)
+        return
 
     print(f"{os.linesep}Downloading the latest version of the pack...{os.linesep}")
 
@@ -101,15 +126,18 @@ def main():
     print(f"{os.linesep}Cleaning up temporary files...{os.linesep}")
     shutil.rmtree("./update_temp")
 
-    # Finish up!
-    print(
-        "Done! You can now launch the pack. If you experience any technical difficulties let your friendly neighbrhood server admin know ASAP!"
+    # Update local version number to match remote
+    print(f"{os.linesep}Updating local version number...{os.linesep}")
+    file_rversion.write(
+        common.version_encode(version_remote[0], version_remote[1], version_remote[2])
     )
+    file_rversion.close()
 
-    # User confirmation dialogue
-    common.continue_or_not("")
+    # Finish up!
+    print("Update completed successfully! Launching instance...")
+    time.sleep(1)
 
-    return 0
+    return
 
 
 if __name__ == "__main__":

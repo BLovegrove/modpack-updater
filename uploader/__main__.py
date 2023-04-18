@@ -102,6 +102,7 @@ def main():
     f = open("upload_temp/version.txt", "w")
     f.write(f"{version_new}")
     f.close()
+    print()
     upload_file("upload_temp/version.txt", "version.txt")
 
     print(f"{os.linesep}Zipping mods...")
