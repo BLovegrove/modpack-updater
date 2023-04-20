@@ -75,8 +75,8 @@ def main():
 
     # Run version check by comparing local version txt to remote version contents
     print(f"{os.linesep}Checking for version discrepency...")
-    file_rversion = open("../version.txt", "r+")
-    version_local = common.version_decode(file_rversion.readline())
+    with open("../version.txt", "r") as f:
+        version_local = common.version_decode(f.readline())
     version_remote = common.version_decode(requests.get(cfg.pack.version).text)
     outdated = False
 
@@ -130,10 +130,12 @@ def main():
 
     # Update local version number to match remote
     print(f"{os.linesep}Updating local version number...{os.linesep}")
-    file_rversion.write(
-        common.version_encode(version_remote[0], version_remote[1], version_remote[2])
-    )
-    file_rversion.close()
+    with open("../version.txt", "w") as f:
+        f.write(
+            common.version_encode(
+                version_remote[0], version_remote[1], version_remote[2]
+            )
+        )
 
     # Finish up!
     print("Update completed successfully! Launching instance...")
