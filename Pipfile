@@ -8,6 +8,8 @@ paramiko = "*"
 tqdm = "*"
 requests = "*"
 cx-freeze = "*"
+matplotlib = "*"
+python-magic = "*"
 
 [dev-packages]
 

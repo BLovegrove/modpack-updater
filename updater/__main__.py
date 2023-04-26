@@ -1,31 +1,13 @@
 # Imports
 import os
+from tkinter import messagebox
 import time
-import requests
 import shutil
-import zipfile
 from tqdm import tqdm
 import config as cfg
 from helpers import common
 import sys
-
-
-# Downloads assets from your packs host
-def update_download(url):
-    # Make a ./update_temp directory if it doesnt exist
-    if not os.path.isdir("update_temp"):
-        os.mkdir("update_temp")
-
-    # Make an HTTP request within a context manager
-    with requests.get(url, stream=True) as r:
-        # Check header to get content length, in bytes
-        total_length = int(r.headers.get("Content-Length"))
-
-        # Implement progress bar via tqdm
-        with tqdm.wrapattr(r.raw, "read", total=total_length, desc="Progress ") as raw:
-            # Save the output to a file
-            with open("update_temp/modpack.zip", "wb") as output:
-                shutil.copyfileobj(raw, output)
+from tqdm import tqdm
 
 
 def update_apply(src_dir, dst_dir):
@@ -43,7 +25,7 @@ def update_apply(src_dir, dst_dir):
 
     common.copy_progress(src_dir, dst_dir)
 
-    return 0
+    return
 
 
 def main():
@@ -67,81 +49,100 @@ def main():
     except:
         print(sys.argv)
         print("No args given! Please include the tools dir abs path as an arg.")
-        common.continue_or_not("")
+        common.conMessagetinue_or_not("")
         return
 
     # MC folder check
     common.in_minecraft_folder()
 
-    # Run version check by comparing local version txt to remote version contents
-    print(f"{os.linesep}Checking for version discrepency...")
-    with open("../version.txt", "r") as f:
-        version_local = common.version_decode(f.readline())
-    version_remote = common.version_decode(requests.get(cfg.pack.version).text)
-    outdated = False
+    # Check for newer version of updater
+    if cfg.updater.check_version:
+        updater_outdated = common.version_behind(
+            "version.txt", cfg.updater.version, "updater"
+        )
+        if updater_outdated:
+            # Download the update
+            print(f"{os.linesep}Grabbing new update...")
+            file_name = common.download(
+                cfg.updater.temp_dir, cfg.updater.url, "updater"
+            )
 
-    for i in range(0, 3):
-        if version_local[i] < version_remote[i]:
-            outdated = True
+            # Unpack the update
+            print(f"{os.linesep}Unpacking update...")
+            unpacked = common.unzip(
+                cfg.updater.temp_dir, f"{cfg.updater.temp_dir}/updater.zip"
+            )
 
-    if not outdated:
-        print("No updates found! Launching instance...")
-        time.sleep(1)
-        return
+            # Finish up message so people arent concerned with the crash
+            messagebox.showwarning(
+                title="Modpack Updater",
+                message="Update ready to restore files! When finished, the process will crash, then you can launch your instance as normal!",
+            )
 
-    print(f"{os.linesep}Downloading the latest version of the pack...{os.linesep}")
+            # Restore new files
+            print(f"{os.linesep}Copying update files...")
+            common.copy_progress(unpacked, "./")
+            return
 
-    # Get remote zip
-    update_download(cfg.pack.url)
+    pack_outdated = common.version_behind("../version.txt", cfg.pack.version, "modpack")
 
-    print(f"{os.linesep}Unpacking update zip...{os.linesep}")
+    if pack_outdated:
+        version_remote = pack_outdated
+        print(f"{os.linesep}Downloading the latest version of the pack...{os.linesep}")
 
-    # Make ./update_temp/unpacked if it doesnt exist
-    if not os.path.isdir("update_temp/unpacked"):
-        os.mkdir("update_temp/unpacked")
+        # Get remote zip
+        common.download("update_temp", cfg.pack.url, "modpack")
 
-    # Unpack zip to ./update_temp/unpacked
-    with zipfile.ZipFile("update_temp/modpack.zip") as zf:
-        for member in tqdm(zf.infolist(), desc="Progress "):
-            try:
-                zf.extract(member, "update_temp/unpacked")
+        # Unzip mods
+        print(f"{os.linesep}Unpacking update zip...{os.linesep}")
+        unpacked = common.unzip(cfg.updater.temp_dir, "update_temp/modpack.zip")
 
-            except zipfile.error as e:
-                pass
+        # Sync all downloaded files
+        print(f"{os.linesep}Matching local with remote data...{os.linesep}")
+        src_mods = f"{unpacked}/mods"
+        print(f"{os.linesep}Mods: ")
+        update_apply(src_mods, "../mods")
 
-    print(f"{os.linesep}Matching local with remote data...{os.linesep}")
+        # Clean up the temp folder(s)
+        print(f"{os.linesep}Cleaning up temporary files...{os.linesep}")
+        shutil.rmtree(cfg.updater.temp_dir)
 
-    src_config = "update_temp/unpacked/config"
-    src_mods = "update_temp/unpacked/mods"
+        # Update local version number to match remote
+        print(f"{os.linesep}Updating local version number...{os.linesep}")
+        with open("../version.txt", "w") as f:
+            f.write(
+                common.version_encode(
+                    version_remote[0],
+                    version_remote[1],
+                    version_remote[2],
+                )
+            )
+
+        # Finish up!
+        print("Update completed successfully!")
+
+    print("Launching instance...")
+    time.sleep(1)
+    return
+
+    # # Make ./update_temp/unpacked if it doesnt exist
+    # if not os.path.isdir("update_temp/unpacked"):
+    #     os.mkdir("update_temp/unpacked")
+
+    # # Unpack zip to ./update_temp/unpacked
+    # with zipfile.ZipFile("update_temp/modpack.zip") as zf:
+    #     for member in tqdm(zf.infolist(), desc="Progress "):
+    #         try:
+    #             zf.extract(member, "update_temp/unpacked")
+
+    #         except zipfile.error as e:
+    #             pass
+
+    # src_config = "update_temp/unpacked/config"
 
     # Update confifg files
-    print("Configs: ")
-    update_apply(src_config, "../config")
-
-    print()
-
-    # Update mod files
-    print("Mods: ")
-    update_apply(src_mods, "../mods")
-
-    # Clean up the update_temp folder
-    print(f"{os.linesep}Cleaning up temporary files...{os.linesep}")
-    shutil.rmtree("./update_temp")
-
-    # Update local version number to match remote
-    print(f"{os.linesep}Updating local version number...{os.linesep}")
-    with open("../version.txt", "w") as f:
-        f.write(
-            common.version_encode(
-                version_remote[0], version_remote[1], version_remote[2]
-            )
-        )
-
-    # Finish up!
-    print("Update completed successfully! Launching instance...")
-    time.sleep(1)
-
-    return
+    # print("Configs: ")
+    # update_apply(src_config, "../config")
 
 
 if __name__ == "__main__":

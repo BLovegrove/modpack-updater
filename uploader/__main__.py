@@ -69,9 +69,11 @@ def main():
     match version_new:
         case "M" | "major":
             version_old[0] += 1
+            version_old[1] = version_old[2] = 0
 
         case "m" | "minor":
             version_old[1] += 1
+            version_old[2] = 0
 
         case "p" | "patch":
             version_old[2] += 1
@@ -99,9 +101,8 @@ def main():
     os.mkdir("upload_temp")
 
     print(f"{os.linesep}Updating server file with new version number...")
-    f = open("upload_temp/version.txt", "w")
-    f.write(f"{version_new}")
-    f.close()
+    with open("upload_temp/version.txt", "w") as f:
+        f.write(f"{version_new}")
     print()
     upload_file("upload_temp/version.txt", "version.txt")
 
@@ -110,10 +111,10 @@ def main():
     for file in tqdm(mods, desc="Progress "):
         zipfile.ZipFile("upload_temp/modpack.zip", mode="a").write(file)
 
-    print(f"{os.linesep}Zipping configs...")
-    configs = common.list_items("../config", include_folders=False)
-    for file in tqdm(configs, desc="Progress "):
-        zipfile.ZipFile("upload_temp/modpack.zip", mode="a").write(file)
+    # print(f"{os.linesep}Zipping configs...")
+    # configs = common.list_items("../config", include_folders=False)
+    # for file in tqdm(configs, desc="Progress "):
+    #     zipfile.ZipFile("upload_temp/modpack.zip", mode="a").write(file)
 
     print(f"{os.linesep}Uploading pack with 'v{version_new}' tag...")
     upload_file("upload_temp/modpack.zip", f"modpack_v{version_new}.zip")

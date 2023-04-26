@@ -3,18 +3,22 @@ import config as cfg
 
 # Dependencies are automatically detected, but it might need
 # fine tuning.
-build_options = {"packages": [], "excludes": []}
 
-base = "Console"
-
-executables = [
-    Executable("./updater/__main__.py", base=base, target_name="modpack-update")
-]
+build_options = {
+    "packages": [],
+    "excludes": [],
+    "build_exe": "/home/brandon/.var/app/org.prismlauncher.PrismLauncher/data/PrismLauncher/instances/core/minecraft/tools/",
+}
+# build_options = {"packages": [], "excludes": [], }
 
 setup(
-    name="modpack-updater",
+    name="modpack-uploader",
     version="1.0",
-    description=f"Updates the {cfg.pack.name} modpack",
+    description=f"Uploads new version of {cfg.pack.name} modpack",
     options={"build_exe": build_options},
-    executables=executables,
+    executables=[
+        Executable(
+            "./updater/__main__.py", base="Console", target_name="modpack-update"
+        )
+    ],
 )

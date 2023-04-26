@@ -1,10 +1,17 @@
 class pack:
     # The name of your pack to display in the scripts welcome message
-    name = "the LAMZPack"
-    # Url to your modpacks data. Must be a zip containing a mods folder and config folder in its root. Must be direct DL link.
-    url = ""
-    # The semantic version of your pack. Leave this default if your pack is brand new
-    version = "1.0.0"
+    name = "Your Modpack Name Here"
+    # Url to your modpacks data. Must be a zip containing a config folder and/or a mods folder in its root. Must be direct DL link.
+    url = "https://foo.bar/modpack/latest.zip"
+    # Url to your modpacks version file. Must be a txt file containing one line with a 3-part semantic version number.
+    version = "https://foo.bar/version.txt"
+
+
+class updater:
+    # Wether or not to check for an updated version of the updater itself - this should stay on outside of testing
+    check_version = True
+    # Url to the updater version file. Must be a txt file containing one line with a 3-part semantic version number.
+    version = "https://foo.bar/version.txt"
 
 
 class upload:
