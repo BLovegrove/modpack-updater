@@ -14,7 +14,7 @@ build_options = {
 setup(
     name="modpack-uploader",
     version="1.0",
-    description=f"Uploads new version of {cfg.pack.name} modpack",
+    description=f"Updates current version of {cfg.pack.name} modpack",
     options={"build_exe": build_options},
     executables=[
         Executable("./update/__main__.py", base="Console", target_name="modpack-update")
