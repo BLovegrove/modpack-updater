@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "199523bb9c3fe46007a189e730ba1b1cfa121a0843472768dcaa18350466e00e"
+            "sha256": "8d52790837fac8616e326b534966e59fe0a28197a4c166db75b424c04e842406"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -160,6 +160,14 @@
             ],
             "markers": "python_version >= '3.5'",
             "version": "==3.4"
+        },
+        "packaging": {
+            "hashes": [
+                "sha256:994793af429502c4ea2ebf6bf664629d07c1a9fe974af92966e4b8d2df7edc61",
+                "sha256:a392980d2b6cffa644431898be54b0045151319d1e7ec34f0cfed48767dd334f"
+            ],
+            "index": "pypi",
+            "version": "==23.1"
         },
         "patchelf": {
             "hashes": [

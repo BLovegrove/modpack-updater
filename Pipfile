@@ -7,6 +7,7 @@ name = "pypi"
 requests = "*"
 cx-freeze = "*"
 toml = "*"
+packaging = "*"
 
 [dev-packages]
 

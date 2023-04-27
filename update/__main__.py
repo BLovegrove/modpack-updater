@@ -11,26 +11,7 @@ import config as cfg
 
 
 def main():
-    sys.argv[0] = "/home/brandon/Documents/modpack-updater/update/"
-
-    try:
-        script_dir = (
-            sys.argv[0].replace("\\modpack-update.exe", "")
-            # .replace("modpack-update", "")
-        )
-
-        os.chdir(script_dir)
-    except Exception as e:
-        message = (
-            f"{e}"
-            + f"Args found: {sys.argv}"
-            + os.linesep * 2
-            + "Please provide the full path to this executable as an arg to run the updater."
-            + os.linesep * 2
-            + "If done via your launcher, this should be the first arg by default."
-        )
-        messagebox.showerror(title="No arguments given!", message=message)
-        return
+    os.chdir(os.path.dirname(__file__))
 
     # Welcome message
     print(
@@ -41,7 +22,7 @@ def main():
         + f"Thank you for choosing {cfg.pack.name}!{os.linesep*2}"
     )
 
-    # TODO: check client can see server
+    # check client can see server
     split_url = urlsplit(cfg.pack.url)
     try:
         response = int(
@@ -70,11 +51,17 @@ def main():
     else:
         print("Connection status: ✅" + os.linesep)
 
-    # TODO: check current version against most recent remote version
+    # check current version against most recent remote version
 
     changelog = toml.loads(
         requests.get(cfg.pack.url + "/changelog.toml", stream=True).content.decode()
     )
+
+    if not os.path.exists("../version.txt"):
+        print(
+            "Version file not found - creating file with version 0.0.0..." + os.linesep
+        )
+        pathlib.Path("../version.txt").write_text("0.0.0", encoding="utf-8")
 
     current_version = pathlib.Path("../version.txt").read_text()
     update_queue: list[dict[str, str]] = []
@@ -92,7 +79,7 @@ def main():
 
     print("Update detected! Collating changes since last update..." + os.linesep)
 
-    # TODO: parse changes into add and remove lists
+    # parse changes into add and remove lists
 
     process_queue: list[dict[str, str]] = []
     rem_queue = []
@@ -119,7 +106,7 @@ def main():
             except KeyError as e:
                 pass
 
-    # TODO: execute process queue downloading and deleting files where needed
+    # execute process queue downloading and deleting files where needed
 
     for item in process_queue:
         queue_display = f"(item #{process_queue.index(item)+1} of {len(process_queue)})"
@@ -149,12 +136,12 @@ def main():
             with open(filepath, "wb") as f:
                 f.write(requests.get(f"{cfg.pack.url}/{item_type}/{file}").content)
 
-    # TODO: change local version to match remote
+    # change local version to match remote
 
     with open("../version.txt", "w") as f:
         f.write(update_queue[0]["version"])
 
-    # TODO: finish up and close
+    # finish up and close
     messagebox.showinfo(
         title="Success!",
         message=f"Modpack updated.{os.linesep*2}Launching your instance now...",
