@@ -4,12 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-paramiko = "*"
-tqdm = "*"
 requests = "*"
 cx-freeze = "*"
-matplotlib = "*"
-python-magic = "*"
+toml = "*"
 
 [dev-packages]
 

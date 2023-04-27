@@ -7,7 +7,7 @@ import config as cfg
 build_options = {
     "packages": [],
     "excludes": [],
-    "build_exe": "/home/brandon/.var/app/org.prismlauncher.PrismLauncher/data/PrismLauncher/instances/core/minecraft/tools/",
+    "build_exe": "build",
 }
 # build_options = {"packages": [], "excludes": [], }
 
@@ -17,8 +17,6 @@ setup(
     description=f"Uploads new version of {cfg.pack.name} modpack",
     options={"build_exe": build_options},
     executables=[
-        Executable(
-            "./updater/__main__.py", base="Console", target_name="modpack-update"
-        )
+        Executable("./update/__main__.py", base="Console", target_name="modpack-update")
     ],
 )
