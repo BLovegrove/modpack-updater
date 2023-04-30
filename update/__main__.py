@@ -96,14 +96,24 @@ def main():
                 continue
 
             try:
-                for item in update[key]["add"]:
+                for item in tqdm(
+                    update[key]["add"],
+                    f"Adding from update {update['version']}",
+                    leave=True,
+                    position=0,
+                ):
                     if item not in process_queue["download"]:
                         process_queue["download"].append(item)
             except KeyError as e:
                 pass
 
             try:
-                for item in update[key]["rem"]:
+                for item in tqdm(
+                    update[key]["rem"],
+                    f"Removing from update {update['version']}",
+                    leave=True,
+                    position=0,
+                ):
                     if item not in process_queue["remove"]:
                         process_queue["remove"].append(item)
             except KeyError as e:
