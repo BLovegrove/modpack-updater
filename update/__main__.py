@@ -90,30 +90,21 @@ def main():
 
     process_queue: dict[str, list[str]] = {"download": [], "remove": []}
 
-    for update in tqdm(update_queue, "Progress", leave=True, position=0):
+    for update in update_queue:
+        print(f"Compiling changes from v{update['version']}...")
+
         for key in update.keys():
             if key == "version" or key == "timestamp":
                 continue
-
             try:
-                for item in tqdm(
-                    update[key]["add"],
-                    f"Adding from update {update['version']}",
-                    leave=True,
-                    position=0,
-                ):
+                for item in update[key]["add"]:
                     if item not in process_queue["download"]:
                         process_queue["download"].append(item)
             except KeyError as e:
                 pass
 
             try:
-                for item in tqdm(
-                    update[key]["rem"],
-                    f"Removing from update {update['version']}",
-                    leave=True,
-                    position=0,
-                ):
+                for item in update[key]["rem"]:
                     if item not in process_queue["remove"]:
                         process_queue["remove"].append(item)
             except KeyError as e:
