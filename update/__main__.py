@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 from tkinter import messagebox
 import requests
 import toml
-
+from tqdm import tqdm
 import config as cfg
 
 
@@ -18,7 +18,7 @@ def main():
     else:
         dry_run = False
 
-    os.chdir(os.path.dirname(__file__))
+    os.chdir(os.path.dirname(sys.argv[0]))
 
     # welcome message -------------------------------------------------------------------------------- #
     print(
@@ -56,7 +56,9 @@ def main():
         return
 
     else:
-        print("Connection status: ✅" + os.linesep)
+        print("Connection status: ✅")
+
+    print(os.linesep)
 
     # check current version against most recent remote version --------------------------------------- #
     changelog = toml.loads(
@@ -64,9 +66,7 @@ def main():
     )
 
     if not os.path.exists("../version.txt"):
-        print(
-            "Version file not found - creating file with version 0.0.0..." + os.linesep
-        )
+        print("Version file not found - creating file with version 0.0.0...")
         pathlib.Path("../version.txt").write_text("0.0.0", encoding="utf-8")
 
     current_version = pathlib.Path("../version.txt").read_text()
@@ -83,9 +83,11 @@ def main():
         )
         return
 
-    print("Update detected! Collating changes since last update..." + os.linesep)
+    print(os.linesep)
 
     # process updates into single process queue ------------------------------------------------------ #
+    print("Update detected! Collating changes since last update...")
+
     process_queue: dict[str, list[str]] = {"download": [], "remove": []}
 
     for update in update_queue:
@@ -93,40 +95,39 @@ def main():
             if key == "version" or key == "timestamp":
                 continue
 
-            print(f"update: {update.items()}, key: {key}")
-
             try:
-                for item in update[key]["add"]:
+                for item in tqdm(
+                    update[key]["add"], "+ changes", leave=True, position=0
+                ):
                     if item not in process_queue["download"]:
                         process_queue["download"].append(item)
             except KeyError as e:
                 pass
 
             try:
-                for item in update[key]["rem"]:
+                for item in tqdm(
+                    update[key]["rem"], "- changes", leave=True, position=0
+                ):
                     if item not in process_queue["remove"]:
                         process_queue["remove"].append(item)
             except KeyError as e:
                 pass
 
-    # execute process queue downloading and deleting files where needed ------------------------------ #
-    print("Executing changes..." + os.linesep)
-    for action, files in process_queue.items():
-        for file in files:
-            queue_display = f"(item #{files.index(file)+1} of {len(files)})"
+    print(os.linesep)
 
+    # execute process queue downloading and deleting files where needed ------------------------------ #
+    print("Executing changes...")
+    for action, files in process_queue.items():
+        for file in tqdm(files, "Progress", leave=True, position=0):
             filepath = f"../{file}"
 
-            if action == "remove":
-                try:
-                    print(f"Removing '{file}' {queue_display}")
-                    if not dry_run:
+            if not dry_run:
+                if action == "remove":
+                    try:
                         os.remove(filepath)
-                except FileNotFoundError as e:
-                    print(f"File not found. Can't remove.")
-            else:
-                print(f"Creating '{file}' {queue_display}")
-                if not dry_run:
+                    except FileNotFoundError as e:
+                        print(f"File not found. Can't remove.")
+                else:
                     os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
                     if os.path.exists(filepath):
@@ -135,7 +136,10 @@ def main():
                     with open(filepath, "wb") as f:
                         f.write(requests.get(f"{cfg.pack.url}/{file}").content)
 
+    print(os.linesep)
+
     # change local version to match remote ----------------------------------------------------------- #
+    print("Updating version file...")
     with open("../version.txt", "w") as f:
         f.write(update_queue[0]["version"])
 

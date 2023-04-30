@@ -8,6 +8,7 @@ requests = "*"
 cx-freeze = "*"
 toml = "*"
 packaging = "*"
+tqdm = "*"
 
 [dev-packages]
 
