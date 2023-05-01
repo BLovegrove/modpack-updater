@@ -56,7 +56,7 @@ def main():
         return
 
     else:
-        print("Connection status: ✅")
+        print("Connection status: Good")
 
     print(os.linesep)
 

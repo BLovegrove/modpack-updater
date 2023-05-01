@@ -9,6 +9,7 @@ cx-freeze = "*"
 toml = "*"
 packaging = "*"
 tqdm = "*"
+lief = "*"
 
 [dev-packages]
 
