@@ -77,10 +77,7 @@ def main():
             update_queue.append(update)
 
     if len(update_queue) <= 0:
-        messagebox.showinfo(
-            title="Modpack up to date!",
-            message="Your instance should launch shortly...",
-        )
+        print("Modpack up to date! Your instance should launch shortly...")
         return
 
     print(os.linesep)
