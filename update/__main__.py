@@ -142,10 +142,7 @@ def main():
         f.write(update_queue[0]["version"])
 
     # finish up and close ---------------------------------------------------------------------------- #
-    messagebox.showinfo(
-        title="Success!",
-        message=f"Modpack updated.{os.linesep*2}Launching your instance now...",
-    )
+    print("Success! Modpack updated - Launching your instance now...")
 
 
 if __name__ == "__main__":
