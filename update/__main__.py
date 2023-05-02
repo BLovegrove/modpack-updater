@@ -111,24 +111,28 @@ def main():
 
     # execute process queue downloading and deleting files where needed ------------------------------ #
     print("Executing changes...")
-    for file in tqdm(process_queue["download"], "Downloading", leave=True, position=0):
-        filepath = "../" + file
-        if not dry_run:
-            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    if len(process_queue["download"]) > 0:
+        for file in tqdm(
+            process_queue["download"], "Downloading", leave=True, position=0
+        ):
+            filepath = "../" + file
+            if not dry_run:
+                os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
-            if os.path.exists(filepath):
-                os.remove(filepath)
+                if os.path.exists(filepath):
+                    os.remove(filepath)
 
-            with open(filepath, "wb") as f:
-                f.write(requests.get(f"{cfg.pack.url}/{file}").content)
+                with open(filepath, "wb") as f:
+                    f.write(requests.get(f"{cfg.pack.url}/{file}").content)
 
-    for file in tqdm(process_queue["remove"], "Deleting", leave=True, position=0):
-        filepath = "../" + file
-        if not dry_run:
-            try:
-                os.remove(filepath)
-            except FileNotFoundError as e:
-                print(f"File not found. Can't remove.")
+    if len(process_queue["remove"]) > 0:
+        for file in tqdm(process_queue["remove"], "Deleting", leave=True, position=0):
+            filepath = "../" + file
+            if not dry_run:
+                try:
+                    os.remove(filepath)
+                except FileNotFoundError as e:
+                    print(f"File not found. Can't remove.")
 
     print(os.linesep)
 
